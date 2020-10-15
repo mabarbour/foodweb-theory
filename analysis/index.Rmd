@@ -8,4 +8,6 @@ editor_options:
   chunk_output_type: console
 ---
 
-[Temperature dependence of consumer-resource interactions](temperature-dependence.html).
+## [Modelling G$\times$E effects on consumer-resource interactions](temperature-GxE-consumers.html). 
+
+> Code to reproduce Fig. 3 in the main text of the manuscript "Genetic and plastic rewiring of ecological networks under climate change".
