@@ -1,0 +1,368 @@
+---
+title: Modelling G$\times$E effects on consumer-resource interactions
+author: "Matt Barbour"
+date: "`r Sys.Date()`"
+output: workflowr::wflow_html
+editor_options:
+  chunk_output_type: console
+bibliography: references.bib
+---
+
+```{r setup, include=FALSE}
+## load libraries
+library(deSolve) # numerical integration library
+library(rootSolve) # for runsteady integration function
+library(tidyverse) # for tidying data
+library(cowplot) # for better base, ggplot graphics
+
+# source in useful code
+source("code/temperature-equations.R")
+source("code/identify_steady_state.R")
+source("code/CR_dynamics.R")
+
+## set plot theme
+theme_set(theme_cowplot())
+```
+
+## Consumer-resource model
+
+I analyze a continuous time model of a consumer-resource interaction. The resource exhibits logistic growth and the consumer has a type 1 functional response:
+
+$$\frac{dR}{dt}=R(r-\frac{rR}{K}-aC)$$
+$$\frac{dC}{dt}=C(eaR-m)$$
+
+```{r CR-model, include=FALSE}
+CR_model <- function(Time,State,Pars) {
+  with(as.list(c(State,Pars)), {
+    # Consumer functional response
+    CRfxn <- a * R 
+    # population dynamics
+    dR.dt <- r * R * (1 - R / K) - C * CRfxn
+    dC.dt <- C * (e * CRfxn - m)
+    # output  
+    return(list(c(dR.dt, dC.dt)))
+  })
+}
+```
+
+The following ecological rates govern the dynamics of this model:
+
+*r* = intrinsic growth rate of resource at low densities
+
+*K* = carrying capacity of resource
+
+*a* = attack rate of consumer on the resource
+
+*e* = conversion efficiency of resources into consumers
+
+*m* = mortality rate of consumer
+
+I consider these ecological rates as the **phenotypes** of the consumer and resource. For my initial exploration, I'm going to keep things simple and focus on G$\times$E effects of consumers, but I also model the effects of E on resources. I'm also going to link phenotypic change to selection, fitness, and stability. 
+
+Following the framework of @Gilbert2014, I assume that the temperature dependence of consumer and resource phenotypes can be modelled as Boltzmann-Arrhenius equations. I focus here on temperature because of its well known influence on consumer and resource phenotypes, and its predictable response to climate change. I also use the biological plausible parameter values that @Gilbert2014 provide in Table 1 and Figure 3 of their paper. I explore the effects of temperature across a gradient from 5-30$^\circ$C.
+
+```{r temp-gradient, include=F}
+Temp_seq <- 5:30
+```
+
+## Scaling G$\times$E to consumer phenotype
+
+To get a sense for how genotype-by-environment interactions (G$\times$E) in consumers might alter these dynamics, I created two different genotypes (A and B). These genotypes have the same "initial" phenotype, which I setup at 15$^\circ$C. This choice of temperature was arbitrary and I chose it to follow Fig. 3 of @Gilbert2014. I would argue this represents the effect of genotype (G) as it affects the "intercept" of the phenotype. To simulate a G$\times$E effect, I adjusted the activation energy of the temperature relationship (i.e., the slope) assuming a linear tradeoff between genotypes. With these two genotypes, I can visualize G effects (comparing at 15$^\circ$C), E effects (mean phenotype change with temperature), and G$\times$E effects (different slopes of each genotype).
+
+### Scaling G$\times$E to consumer attack rate *a*:
+
+```{r a-scaling}
+# parameters from Gilbert et al. 2014 and Osmond et al. 2017
+E_vC_mean <- 0.46
+E_tradeoff <- 0.2
+E_vC_A <- E_vC_mean - E_tradeoff
+E_vC_B <- E_vC_mean + E_tradeoff
+
+# Genotype A
+a_seq <- a_scaling(a0 = a0(a_base = 0.1, v0_C = 1, v0_R = 1, 
+                           E_vC = E_vC_A, E_vR = 0.46, 
+                           T_C = C_to_K(15), T_R = C_to_K(15)),
+                   v0_C = 1, v0_R = 1, E_vC = E_vC_A, E_vR = 0.46,
+                   T_C = C_to_K(Temp_seq), T_R = C_to_K(Temp_seq))
+
+# Genotype B
+a_seq2 <- a_scaling(a0 = a0(a_base = 0.1, v0_C = 1, v0_R = 1, 
+                            E_vC = E_vC_B, E_vR = 0.46, 
+                            T_C = C_to_K(15), T_R = C_to_K(15)),
+                   v0_C = 1, v0_R = 1, E_vC = E_vC_B, E_vR = 0.46,
+                   T_C = C_to_K(Temp_seq), T_R = C_to_K(Temp_seq)) 
+```
+
+### Scaling G$\times$E to consumer mortality rate *m*:
+
+```{r m-scaling}
+E_m_mean <- 0.45
+# using same tradeoff
+E_m_A <- E_m_mean - E_tradeoff
+E_m_B <- E_m_mean + E_tradeoff
+
+m_seq <- m_scaling(m0 = m0(m_base = 0.6, E_m = E_m_A, T = C_to_K(15)), 
+                   E_m = E_m_A,
+                   T = C_to_K(Temp_seq))
+
+m_seq2 <- m_scaling(m0 = m0(m_base = 0.6, E_m = E_m_B, T = C_to_K(15)), 
+                   E_m = E_m_B,
+                   T = C_to_K(Temp_seq))
+```
+
+According to @Peters1983, conversion efficiency *e* is independent of temperature, so I set *e*=0.15 as in Fig. 3 of @Gilbert2014.
+
+## Scaling E to resource phenotype
+
+For resources, I only modelled well known effects of warming.
+
+### Scaling intrinsic growth rate *r*:
+
+```{r r-scaling}
+# Genotype A
+r_seq <- r_scaling(r0 = r0(r_base = 2, E_B = 0.32, T = C_to_K(15)), 
+                   E_B = 0.32,
+                   T = C_to_K(Temp_seq))
+```
+
+### Scaling carrying capacity *K*:
+
+```{r K-scaling}
+# Genotype A
+K_seq <- K_scaling(K0 = K0(K_base = 100, E_B = 0.32, E_S = 0.9, T = C_to_K(15)), 
+                   E_B = 0.32,
+                   E_S = 0.9,
+                   T = C_to_K(Temp_seq))
+```
+
+## Visualize consumer and resource phenotypes
+
+```{r data-GxE, echo=FALSE}
+## organize phenotype data ----
+
+# same phenotype for resource traits
+r_df <- data.frame(Temp_seq, A = r_seq, B = r_seq) %>% # r_seq for A and B
+  gather(key = Genotype, value = "phenotype", -Temp_seq) %>%
+  mutate(parameter = "r")
+
+K_df <- data.frame(Temp_seq, A = K_seq, B = K_seq) %>% # r_seq for A and B
+  gather(key = Genotype, value = "phenotype", -Temp_seq) %>%
+  mutate(parameter = "K")
+
+# different phenotypes for consumer traits
+a_df <- data.frame(Temp_seq, A = a_seq, B = a_seq2) %>%
+  gather(key = Genotype, value = "phenotype", -Temp_seq) %>%
+  mutate(parameter = "a")
+
+m_df <- data.frame(Temp_seq, A = m_seq, B = m_seq2) %>% 
+  gather(key = Genotype, value = "phenotype", -Temp_seq) %>%
+  mutate(parameter = "m")
+
+e_df <- data.frame(Temp_seq, A = rep(0.15, length(Temp_seq)), B = rep(0.15, length(Temp_seq))) %>%
+  gather(key = Genotype, value = "phenotype", -Temp_seq) %>%
+  mutate(parameter = "e")
+
+# gather data
+phenotype_df <- bind_rows(r_df, K_df, a_df, e_df, m_df) %>%
+  mutate(Species = ifelse(parameter %in% c("r","K"), "resource", "consumer"))
+phenotype_df$parameter <- factor(phenotype_df$parameter, levels = c("r","K","a","e","m"), labels = c("intrinsic growth rate","carrying capacity","attack rate","conversion efficiency","mortality rate"))
+```
+
+### G$\times$E on consumer phenotype
+
+```{r plot-GxE-consumer, echo=FALSE, fig.height=3}
+# consumer
+plot_phenotype_C <- ggplot(filter(phenotype_df, Species == "consumer"), aes(x = Temp_seq, y = phenotype, color = Genotype)) +
+  geom_point() +
+  facet_wrap(~parameter, scales = "free_y", nrow = 1) +
+  xlab("Temperature (C)") +
+  ylab("Phenotype") +
+  scale_color_viridis_d()
+plot_phenotype_C
+```
+
+### E on resource phenotype
+
+```{r plot-E-resource, echo=FALSE, fig.height=3}
+# resource
+plot_phenotype_R <- ggplot(filter(phenotype_df, Species == "resource"), aes(x = Temp_seq, y = phenotype)) +
+  geom_line() + 
+  facet_wrap(~parameter, scales = "free_y", nrow = 1) +
+  xlab("Temperature (C)") +
+  ylab("Phenotype")
+plot_phenotype_R
+```
+
+## How will G$\times$E effects of temperature alter natural selection?
+
+To answer this question, I have to understand how a small change in the phenotype alters the mean fitness ($\bar{W}$) of the consumer or resource population (i.e. directional selection). Importantly, both consumer and resource fitness are density-dependent:
+
+$$\bar{W_R}=\frac{1}{R}\frac{dR}{dt}=r-\frac{r}{K}R-aC$$
+$$\bar{W_C}=\frac{1}{C}\frac{dR}{dt}=eaR-m$$
+
+To make things easier, I assume the consumer and resource dynamics are at an equilibrium and use these values to to estimate selection on each phenotype. Note that I only assess selection acting on the consumer, since I'm primarily interested in the consequences of G$\times$E.
+
+```{r selection-dynamics, echo=FALSE, warning=FALSE}
+# delta phenotype to estimate selection gradients 
+#delta_r <- 0.01
+#delta_K <- 0.01
+delta_e <- 0.01
+delta_m <- 0.01
+delta_a <- 0.01
+
+# selection on genotype A
+selection_A <- CR_dynamics(
+  init_parameters = data.frame(r = r_seq, K = K_seq, a = a_seq, e = 0.15, m = m_seq),
+  init_states = data.frame(R = 1, C = 1),
+  eco_CR_model = CR_model) %>%
+  mutate(Genotype = "A",
+         Temp_seq = Temp_seq,
+         # calculate mean fitness for R
+         R_base.fitness = r_seq - r_seq/K_seq*R - a_seq*C,
+         # calculate mean fitness for C
+         C_base.fitness = e*a_seq*R - m_seq,
+         # calculate how a small change in parameter (delta_) influences mean fitness
+         # note that the equilibrium R at the previous r value is assumed constant
+         # this, I believe, is the same assumption for the Adaptive Dynamics approach,
+         # but I'm unsure for quantitative genetics.
+         
+         # calculate selection gradient on e
+         C_delta_e.fitness = (e + delta_e)*a_seq*R - m_seq,
+         beta_e = (C_delta_e.fitness - C_base.fitness)/delta_e,
+         
+         # calculate selection gradient on m
+         C_delta_m.fitness = e*a_seq*R - (m_seq + delta_m),
+         beta_m = (C_delta_m.fitness - C_base.fitness)/delta_m,
+         
+         # calculate selection gradient on a for Consumer
+         C_delta_a.fitness = e*(a_seq + delta_a)*R - m_seq,
+         beta_a.C = (C_delta_a.fitness - C_base.fitness)/delta_a)
+
+# selection on genotype B
+selection_B <- CR_dynamics(
+  init_parameters = data.frame(r = r_seq, K = K_seq, a = a_seq2, e = 0.15, m = m_seq2),
+  init_states = data.frame(R = 1, C = 1),
+  eco_CR_model = CR_model) %>%
+  mutate(Genotype = "B",
+         Temp_seq = Temp_seq,
+         # calculate mean fitness for C
+         C_base.fitness = e*a_seq2*R - m_seq2,
+         # calculate how a small change in parameter (delta_) influences mean fitness
+         # note that the equilibrium R at the previous r value is assumed constant
+         # this, I believe, is the same assumption for the Adaptive Dynamics approach,
+         # but I'm unsure for quantitative genetics.
+         
+         # calculate selection gradient on e
+         C_delta_e.fitness = (e + delta_e)*a_seq2*R - m_seq2,
+         beta_e = (C_delta_e.fitness - C_base.fitness)/delta_e,
+         
+         # calculate selection gradient on m
+         C_delta_m.fitness = e*a_seq2*R - (m_seq2 + delta_m),
+         beta_m = (C_delta_m.fitness - C_base.fitness)/delta_m,
+         
+         # calculate selection gradient on a
+         C_delta_a.fitness = e*(a_seq2 + delta_a)*R - m_seq2,
+         beta_a = (C_delta_a.fitness - C_base.fitness)/delta_a)
+```
+
+```{r plot-selection, include=FALSE, warning=FALSE}
+# organize data
+selection_df <- bind_rows(selection_A, selection_B) %>%
+  select(Genotype, Temp_seq, beta_a, beta_e, beta_m) %>%
+  gather(key = "phenotype", value = "Beta", -Temp_seq, -Genotype) %>%
+  separate(col = phenotype, into = c("beta","parameter"), sep = "_") %>%
+  select(-beta) %>%
+  mutate(Species = ifelse(parameter %in% c("a","e","m"), "consumer", "resource"))
+selection_df$parameter <- factor(selection_df$parameter, levels = c("a","e","m"))
+
+plot_selection <- ggplot(selection_df, aes(x = Temp_seq, y = Beta, color = Genotype)) +
+  geom_line() +
+  facet_wrap(~parameter, scales = "free_y", nrow = 1) +
+  geom_hline(yintercept = 0, linetype = "dotted") +
+  #geom_vline(xintercept = 15, linetype = "dotted", alpha = 0.5) + 
+  xlab("Temperature (C)") +
+  ylab("Directional selection gradient") +
+  scale_color_viridis_d()
+```
+
+Now I can plot both the G$\times$E effects of temperature, but also how these G$\times$E alters natural selection:
+
+```{r plot-phenotype-selection, echo=FALSE, warning=FALSE}
+plot_grid(plot_phenotype_C + xlab(""), plot_selection, nrow = 2, align = "hv")
+```
+
+
+## Scaling G$\times$E effects to evolutionary change
+
+I'm going to examine how temperature alters the invasion fitness of genotypes A and B. To do this, I need to be able to assess whether Genotype B, e.g., has higher fitness when Genotype A is at equilibrium, and vice versa. But since there phenotypes are different, I need to compare their total phenotype at a particular temperature.
+
+```{r invasion-fitness, echo=FALSE, message=FALSE, fig.height=3}
+invasion_fitness_df <- left_join(
+  transmute(selection_A, Temp_seq, r = r, K = K, a_A = a, e_A = e, m_A = m, R_A = R, C_A = C),
+  transmute(selection_B, Temp_seq, r = r, K = K, a_B = a, e_B = e, m_B = m, R_B = R, C_B = C))
+# don't know why I had to break it up, but R didn't like it all piped together
+
+invasion_fitness_C_df <- invasion_fitness_df %>% 
+  # comparing to baseline fitness of A. note that I arbitrarily set consumer attack rate for "genotype A"
+  mutate(rel.fitness_B = (e_A + (e_B-e_A))*(a_A + (a_B-a_A))*R_A - (m_A + (m_B-m_A)),
+         rel.fitness_A = (e_B + (e_A-e_B))*(a_B + (a_A-a_B))*R_B - (m_B + (m_A-m_B)))
+
+invasion_fitness_C_df %>%
+  ggplot(., aes(x = Temp_seq)) +
+  geom_line(aes(y = rel.fitness_B, color = "Genotype B")) +
+  geom_line(aes(y = rel.fitness_A, color = "Genotype A")) +
+  ylab("Relative fitness") +
+  geom_hline(yintercept = 0, linetype = "dotted") +
+  scale_color_viridis_d(name = "Genotype", labels = c("A","B"))
+```
+
+## Scaling G$\times$E effects to food-web stability
+
+I can also look at how the G$\times$E effects of temperature alter the stability of the consumer-resource interactions:
+
+```{r plot-stability, echo=FALSE, message=FALSE, fig.height=3}
+# organize data
+stability_df <- bind_rows(selection_A, selection_B) %>%
+  select(Genotype, Temp_seq, max.Re.eigen, max.Im.eigen,) 
+
+organize_fitness <- bind_rows(
+  select(mutate(invasion_fitness_C_df, Genotype = "A"), Genotype, Temp_seq, rel.fitness = rel.fitness_A),
+  select(mutate(invasion_fitness_C_df, Genotype = "B"), Genotype, Temp_seq, rel.fitness = rel.fitness_B)
+)
+
+stability_fitness_df <- left_join(stability_df, organize_fitness) %>%
+  mutate(winner = ifelse(rel.fitness > 0, "winner","loser"))
+
+plot_stability_fitness <- ggplot(stability_fitness_df, aes(x = Temp_seq, y = -1*max.Re.eigen,  shape = winner, color = Genotype)) +
+  geom_point(size = 2) +
+  #geom_line(data = filter(stability_fitness_df, Genotype == "B"),
+  #          aes(y = -1*max.Re.eigen, color = "B")) +
+  geom_hline(yintercept = 0, linetype = "dotted") +
+  #geom_vline(xintercept = 15, linetype = "dotted", alpha = 0.5) + 
+  xlab("Temperature (C)") +
+  ylab(expression("Resilience "(-lambda[max]))) +
+  #scale_alpha_manual(values = c(0.2,1), name = "Invasion fitness", label = c("Negative","Positive")) +
+  scale_shape_manual(values = c(1,16), name = "Selection", label = c("Against","For")) +
+  scale_color_viridis_d() +
+  guides(color = F)
+plot_stability_fitness
+```
+
+While we still observe a typical stability pattern with temperature [explained in detail in @Gilbert2014], we see that G$\times$E effects can switch which genotypes confer greater stability depending on temperature.
+
+## Reproduce Fig. 3 in manuscript
+
+```{r fig.cap="Reproduce Fig. 3 in manuscript.", echo=FALSE}
+temp_GxE_consumer_plot <- plot_grid(
+  plot_phenotype_C + ylab("Consumer phenotype") + xlab(expression("Temperature " ( degree*C))) + theme_cowplot(font_size = 10), 
+  plot_stability_fitness + xlab(expression("Temperature " ( degree*C))) + theme_cowplot(font_size = 10), 
+  ncol = 1, align = 'hv', axis = "lr", labels = c("(a)","(b)"), hjust = 0, vjust = c(1,0.75), label_size = 10) 
+temp_GxE_consumer_plot
+
+# save plot for manuscript
+#save_plot(filename = "Box-3-plot.pdf", plot = temp_GxE_consumer_plot)
+#save_plot(filename = "Box-3-plot.png", plot = temp_GxE_consumer_plot)
+```
+
+
+## References
