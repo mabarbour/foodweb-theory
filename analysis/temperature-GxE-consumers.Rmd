@@ -360,8 +360,8 @@ temp_GxE_consumer_plot <- plot_grid(
 temp_GxE_consumer_plot
 
 # save plot for manuscript
-#save_plot(filename = "Box-3-plot.pdf", plot = temp_GxE_consumer_plot)
-#save_plot(filename = "Box-3-plot.png", plot = temp_GxE_consumer_plot)
+#save_plot(filename = "figures/Box-3-plot.pdf", plot = temp_GxE_consumer_plot)
+#save_plot(filename = "figures/Box-3-plot.png", plot = temp_GxE_consumer_plot)
 ```
 
 

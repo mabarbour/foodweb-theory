@@ -11,16 +11,26 @@
 
 <meta name="author" content="Matt Barbour" />
 
-<meta name="date" content="2020-10-15" />
+<meta name="date" content="2021-07-13" />
 
 <title>Modelling G\timesE effects on consumer-resource interactions</title>
 
+<script src="site_libs/header-attrs-2.9/header-attrs.js"></script>
 <script src="site_libs/jquery-1.11.3/jquery.min.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <link href="site_libs/bootstrap-3.3.5/css/cosmo.min.css" rel="stylesheet" />
 <script src="site_libs/bootstrap-3.3.5/js/bootstrap.min.js"></script>
 <script src="site_libs/bootstrap-3.3.5/shim/html5shiv.min.js"></script>
 <script src="site_libs/bootstrap-3.3.5/shim/respond.min.js"></script>
+<style>h1 {font-size: 34px;}
+       h1.title {font-size: 38px;}
+       h2 {font-size: 30px;}
+       h3 {font-size: 24px;}
+       h4 {font-size: 18px;}
+       h5 {font-size: 16px;}
+       h6 {font-size: 12px;}
+       code {color: inherit; background-color: rgba(0, 0, 0, 0.04);}
+       pre:not([class]) { background-color: white }</style>
 <script src="site_libs/jqueryui-1.11.4/jquery-ui.min.js"></script>
 <link href="site_libs/tocify-1.9.1/jquery.tocify.css" rel="stylesheet" />
 <script src="site_libs/tocify-1.9.1/jquery.tocify.js"></script>
@@ -30,12 +40,26 @@
 <link href="site_libs/font-awesome-5.1.0/css/all.css" rel="stylesheet" />
 <link href="site_libs/font-awesome-5.1.0/css/v4-shims.css" rel="stylesheet" />
 
-<style type="text/css">code{white-space: pre;}</style>
+<link rel="icon" href="https://github.com/workflowr/workflowr-assets/raw/master/img/reproducible.png">
+<!-- Add a small amount of space between sections. -->
 <style type="text/css">
-  pre:not([class]) {
-    background-color: white;
-  }
+div.section {
+  padding-top: 12px;
+}
 </style>
+
+
+
+<style type="text/css">
+  code{white-space: pre-wrap;}
+  span.smallcaps{font-variant: small-caps;}
+  span.underline{text-decoration: underline;}
+  div.column{display: inline-block; vertical-align: top; width: 50%;}
+  div.hanging-indent{margin-left: 1.5em; text-indent: -1.5em;}
+  ul.task-list{list-style: none;}
+    </style>
+
+<style type="text/css">code{white-space: pre;}</style>
 <script type="text/javascript">
 if (window.hljs) {
   hljs.configure({languages: []});
@@ -48,30 +72,27 @@ if (window.hljs) {
 
 
 
+
 <style type="text/css">
-h1 {
-  font-size: 34px;
+/* for pandoc --citeproc since 2.11 */
+div.csl-bib-body { }
+div.csl-entry {
+  clear: both;
 }
-h1.title {
-  font-size: 38px;
+.hanging div.csl-entry {
+  margin-left:2em;
+  text-indent:-2em;
 }
-h2 {
-  font-size: 30px;
+div.csl-left-margin {
+  min-width:2em;
+  float:left;
 }
-h3 {
-  font-size: 24px;
+div.csl-right-inline {
+  margin-left:2em;
+  padding-left:1em;
 }
-h4 {
-  font-size: 18px;
-}
-h5 {
-  font-size: 16px;
-}
-h6 {
-  font-size: 12px;
-}
-.table th:not([align]) {
-  text-align: left;
+div.csl-indent {
+  margin-left: 2em;
 }
 </style>
 
@@ -83,10 +104,6 @@ h6 {
   max-width: 940px;
   margin-left: auto;
   margin-right: auto;
-}
-code {
-  color: inherit;
-  background-color: rgba(0, 0, 0, 0.04);
 }
 img {
   max-width:100%;
@@ -103,40 +120,13 @@ button.code-folding-btn:focus {
 summary {
   display: list-item;
 }
+pre code {
+  padding: 0;
+}
 </style>
 
 
 <style type="text/css">
-/* padding for bootstrap navbar */
-body {
-  padding-top: 51px;
-  padding-bottom: 40px;
-}
-/* offset scroll position for anchor links (for fixed navbar)  */
-.section h1 {
-  padding-top: 56px;
-  margin-top: -56px;
-}
-.section h2 {
-  padding-top: 56px;
-  margin-top: -56px;
-}
-.section h3 {
-  padding-top: 56px;
-  margin-top: -56px;
-}
-.section h4 {
-  padding-top: 56px;
-  margin-top: -56px;
-}
-.section h5 {
-  padding-top: 56px;
-  margin-top: -56px;
-}
-.section h6 {
-  padding-top: 56px;
-  margin-top: -56px;
-}
 .dropdown-submenu {
   position: relative;
 }
@@ -164,7 +154,7 @@ body {
   margin-right: -10px;
 }
 .dropdown-submenu:hover>a:after {
-  border-left-color: #ffffff;
+  border-left-color: #adb5bd;
 }
 .dropdown-submenu.pull-left {
   float: none;
@@ -176,7 +166,7 @@ body {
 }
 </style>
 
-<script>
+<script type="text/javascript">
 // manage active state of menu based on current page
 $(document).ready(function () {
   // active menu anchor
@@ -187,10 +177,23 @@ $(document).ready(function () {
   var menuAnchor = $('a[href="' + href + '"]');
 
   // mark it active
-  menuAnchor.parent().addClass('active');
+  menuAnchor.tab('show');
 
   // if it's got a parent navbar menu mark it active as well
   menuAnchor.closest('li.dropdown').addClass('active');
+
+  // Navbar adjustments
+  var navHeight = $(".navbar").first().height() + 15;
+  var style = document.createElement('style');
+  var pt = "padding-top: " + navHeight + "px; ";
+  var mt = "margin-top: -" + navHeight + "px; ";
+  var css = "";
+  // offset scroll position for anchor links (for fixed navbar)
+  for (var i = 1; i <= 6; i++) {
+    css += ".section h" + i + "{ " + pt + mt + "}\n";
+  }
+  style.innerHTML = "body {" + pt + "padding-bottom: 40px; }\n" + css;
+  document.head.appendChild(style);
 });
 </script>
 
@@ -202,7 +205,6 @@ $(document).ready(function () {
   max-height: 500px;
   min-height: 44px;
   overflow-y: auto;
-  background: white;
   border: 1px solid #ddd;
   border-radius: 4px;
 }
@@ -328,7 +330,7 @@ div.tocify {
 
 
 <!-- setup 3col/9col grid for toc_float and main content  -->
-<div class="row-fluid">
+<div class="row">
 <div class="col-xs-12 col-sm-4 col-md-3">
 <div id="TOC" class="tocify">
 </div>
@@ -374,27 +376,20 @@ div.tocify {
   </div><!--/.container -->
 </div><!--/.navbar -->
 
-<!-- Add a small amount of space between sections. -->
-<style type="text/css">
-div.section {
-  padding-top: 12px;
-}
-</style>
-
-<div class="fluid-row" id="header">
+<div id="header">
 
 
 
 <h1 class="title toc-ignore">Modelling G<span class="math inline">\(\times\)</span>E effects on consumer-resource interactions</h1>
 <h4 class="author">Matt Barbour</h4>
-<h4 class="date">2020-10-15</h4>
+<h4 class="date">2021-07-13</h4>
 
 </div>
 
 
 <p>
 <button type="button" class="btn btn-default btn-workflowr btn-workflowr-report" data-toggle="collapse" data-target="#workflowr-report">
-<span class="glyphicon glyphicon-list" aria-hidden="true"></span> workflowr <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span>
+<span class="glyphicon glyphicon-list" aria-hidden="true"></span> workflowr <span class="glyphicon glyphicon-exclamation-sign text-danger" aria-hidden="true"></span>
 </button>
 </p>
 <div id="workflowr-report" class="collapse">
@@ -403,7 +398,7 @@ div.section {
 <a data-toggle="tab" href="#summary">Summary</a>
 </li>
 <li>
-<a data-toggle="tab" href="#checks"> Checks <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> </a>
+<a data-toggle="tab" href="#checks"> Checks <span class="glyphicon glyphicon-exclamation-sign text-danger" aria-hidden="true"></span> </a>
 </li>
 <li>
 <a data-toggle="tab" href="#versions">Past versions</a>
@@ -412,17 +407,17 @@ div.section {
 <div class="tab-content">
 <div id="summary" class="tab-pane fade in active">
 <p>
-<strong>Last updated:</strong> 2020-10-15
+<strong>Last updated:</strong> 2021-07-13
 </p>
 <p>
-<strong>Checks:</strong> <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> 7 <span class="glyphicon glyphicon-exclamation-sign text-danger" aria-hidden="true"></span> 0
+<strong>Checks:</strong> <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> 6 <span class="glyphicon glyphicon-exclamation-sign text-danger" aria-hidden="true"></span> 1
 </p>
 <p>
 <strong>Knit directory:</strong> <code>foodweb-theory/</code> <span class="glyphicon glyphicon-question-sign" aria-hidden="true" title="This is the local directory in which the code in this file was executed."> </span>
 </p>
 <p>
 This reproducible <a href="http://rmarkdown.rstudio.com">R Markdown</a> analysis was created with <a
-  href="https://github.com/jdblischak/workflowr">workflowr</a> (version 1.6.0). The <em>Checks</em> tab describes the reproducibility checks that were applied when the results were created. The <em>Past versions</em> tab lists the development history.
+  href="https://github.com/jdblischak/workflowr">workflowr</a> (version 1.6.2). The <em>Checks</em> tab describes the reproducibility checks that were applied when the results were created. The <em>Past versions</em> tab lists the development history.
 </p>
 <hr>
 </div>
@@ -431,12 +426,12 @@ This reproducible <a href="http://rmarkdown.rstudio.com">R Markdown</a> analysis
 <div class="panel panel-default">
 <div class="panel-heading">
 <p class="panel-title">
-<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRMarkdownfilestronguptodate"> <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> <strong>R Markdown file:</strong> up-to-date </a>
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRMarkdownfilestronguncommittedchanges"> <span class="glyphicon glyphicon-exclamation-sign text-danger" aria-hidden="true"></span> <strong>R Markdown file:</strong> uncommitted changes </a>
 </p>
 </div>
-<div id="strongRMarkdownfilestronguptodate" class="panel-collapse collapse">
+<div id="strongRMarkdownfilestronguncommittedchanges" class="panel-collapse collapse">
 <div class="panel-body">
-<p>Great! Since the R Markdown file has been committed to the Git repository, you know the exact version of the code that produced these results.</p>
+<p>The R Markdown file has unstaged changes. To know which version of the R Markdown file created these results, you’ll want to first commit it to the Git repo. If you’re still working on the analysis, you can ignore this warning. When you’re finished, you can run <code>wflow_publish</code> to commit the R Markdown file and build the HTML.</p>
 </div>
 </div>
 </div>
@@ -460,7 +455,7 @@ This reproducible <a href="http://rmarkdown.rstudio.com">R Markdown</a> analysis
 </div>
 <div id="strongSeedstrongcodesetseed20200205code" class="panel-collapse collapse">
 <div class="panel-body">
-<p>The command <code>set.seed(20200205)</code> was run prior to running the code in the R Markdown file. Setting a seed ensures that any results that rely on randomness, e.g. subsampling or permutations, are reproducible.</p>
+<p>The command <code>set.seed(20200205)</code> was run prior to running the code in the R Markdown file. Setting a seed ensures that any results that rely on randomness, e.g. subsampling or permutations, are reproducible.</p>
 </div>
 </div>
 </div>
@@ -503,13 +498,19 @@ This reproducible <a href="http://rmarkdown.rstudio.com">R Markdown</a> analysis
 <div class="panel panel-default">
 <div class="panel-heading">
 <p class="panel-title">
-<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcommabarbourfoodwebtheorytreed19252f979559f4c0a5f790545a609676603d234targetblankd19252fa"> <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> <strong>Repository version:</strong> <a href="https://github.com/mabarbour/foodweb-theory/tree/d19252f979559f4c0a5f790545a609676603d234" target="_blank">d19252f</a> </a>
+<a data-toggle="collapse" data-parent="#workflowr-checks" href="#strongRepositoryversionstrongahrefhttpsgithubcommabarbourfoodwebtheorytree7ba99a712f3e965e480849621223998ad9a3469ctargetblank7ba99a7a"> <span class="glyphicon glyphicon-ok text-success" aria-hidden="true"></span> <strong>Repository version:</strong> <a href="https://github.com/mabarbour/foodweb-theory/tree/7ba99a712f3e965e480849621223998ad9a3469c" target="_blank">7ba99a7</a> </a>
 </p>
 </div>
-<div id="strongRepositoryversionstrongahrefhttpsgithubcommabarbourfoodwebtheorytreed19252f979559f4c0a5f790545a609676603d234targetblankd19252fa" class="panel-collapse collapse">
+<div id="strongRepositoryversionstrongahrefhttpsgithubcommabarbourfoodwebtheorytree7ba99a712f3e965e480849621223998ad9a3469ctargetblank7ba99a7a" class="panel-collapse collapse">
 <div class="panel-body">
 <p>
-Great! You are using Git for version control. Tracking code development and connecting the code version to the results is critical for reproducibility. The version displayed above was the version of the Git repository at the time these results were generated. <br><br> Note that you need to be careful to ensure that all relevant files for the analysis have been committed to Git prior to generating the results (you can use <code>wflow_publish</code> or <code>wflow_git_commit</code>). workflowr only checks the R Markdown file, but you know if there are other scripts or data files that it depends on. Below is the status of the Git repository when the results were generated:
+Great! You are using Git for version control. Tracking code development and connecting the code version to the results is critical for reproducibility.
+</p>
+<p>
+The results in this page were generated with repository version <a href="https://github.com/mabarbour/foodweb-theory/tree/7ba99a712f3e965e480849621223998ad9a3469c" target="_blank">7ba99a7</a>. See the <em>Past versions</em> tab to see a history of the changes made to the R Markdown and HTML files.
+</p>
+<p>
+Note that you need to be careful to ensure that all relevant files for the analysis have been committed to Git prior to generating the results (you can use <code>wflow_publish</code> or <code>wflow_git_commit</code>). workflowr only checks the R Markdown file, but you know if there are other scripts or data files that it depends on. Below is the status of the Git repository when the results were generated:
 </p>
 <pre><code>
 Ignored files:
@@ -517,17 +518,18 @@ Ignored files:
     Ignored:    .Rproj.user/
 
 Untracked files:
-    Untracked:  Box-3-plot.pdf
-    Untracked:  Box-3-plot.png
     Untracked:  analysis/rosenzweig-macarthur.Rmd
     Untracked:  code/Models.R
-    Untracked:  rosenzweig-macarthur.png
+    Untracked:  figures/
     Untracked:  temp/
 
 Unstaged changes:
     Modified:   analysis/index.Rmd
     Modified:   analysis/references.bib
+    Modified:   analysis/temperature-GxE-consumers.Rmd
     Deleted:    analysis/temperature-dependence.Rmd
+    Modified:   code/Consumer_Resource_Functions.R
+    Modified:   code/identify_steady_state.R
 
 </code></pre>
 <p>
@@ -542,7 +544,7 @@ Note that any generated files, e.g. HTML, png, CSS, etc., are not included in t
 <div id="versions" class="tab-pane fade">
 
 <p>
-These are the previous versions of the R Markdown and HTML files. If you’ve configured a remote Git repository (see <code>?wflow_git_remote</code>), click on the hyperlinks in the table below to view them.
+These are the previous versions of the repository in which changes were made to the R Markdown (<code>analysis/temperature-GxE-consumers.Rmd</code>) and HTML (<code>docs/temperature-GxE-consumers.html</code>) files. If you’ve configured a remote Git repository (see <code>?wflow_git_remote</code>), click on the hyperlinks in the table below to view the files as they were in that past version.
 </p>
 <div class="table-responsive">
 <table class="table table-condensed table-hover">
@@ -566,6 +568,23 @@ Message
 </tr>
 </thead>
 <tbody>
+<tr>
+<td>
+html
+</td>
+<td>
+<a href="https://rawcdn.githack.com/mabarbour/foodweb-theory/82fbf9529aca44648119fff963ba04c8ea4acf6c/docs/temperature-GxE-consumers.html" target="_blank">82fbf95</a>
+</td>
+<td>
+mabarbour
+</td>
+<td>
+2020-10-15
+</td>
+<td>
+Build site.
+</td>
+</tr>
 <tr>
 <td>
 Rmd
@@ -669,10 +688,84 @@ K_seq &lt;- K_scaling(K0 = K0(K_base = 100, E_B = 0.32, E_S = 0.9, T = C_to_K(15
 <div id="gtimese-on-consumer-phenotype" class="section level3">
 <h3>G<span class="math inline">\(\times\)</span>E on consumer phenotype</h3>
 <p><img src="figure/temperature-GxE-consumers.Rmd/plot-GxE-consumer-1.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-plot-GxE-consumer-1">
+Past versions of plot-GxE-consumer-1.png
+</button>
+</p>
+<div id="fig-plot-GxE-consumer-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/mabarbour/foodweb-theory/blob/82fbf9529aca44648119fff963ba04c8ea4acf6c/docs/figure/temperature-GxE-consumers.Rmd/plot-GxE-consumer-1.png" target="_blank">82fbf95</a>
+</td>
+<td>
+mabarbour
+</td>
+<td>
+2020-10-15
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 </div>
 <div id="e-on-resource-phenotype" class="section level3">
 <h3>E on resource phenotype</h3>
 <p><img src="figure/temperature-GxE-consumers.Rmd/plot-E-resource-1.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-plot-E-resource-1">
+Past versions of plot-E-resource-1.png
+</button>
+</p>
+<div id="fig-plot-E-resource-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/mabarbour/foodweb-theory/blob/82fbf9529aca44648119fff963ba04c8ea4acf6c/docs/figure/temperature-GxE-consumers.Rmd/plot-E-resource-1.png" target="_blank">82fbf95</a>
+</td>
+<td>
+mabarbour
+</td>
+<td>
+2020-10-15
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 </div>
 </div>
 <div id="how-will-gtimese-effects-of-temperature-alter-natural-selection" class="section level2">
@@ -682,16 +775,129 @@ K_seq &lt;- K_scaling(K0 = K0(K_base = 100, E_B = 0.32, E_S = 0.9, T = C_to_K(15
 <p>To make things easier, I assume the consumer and resource dynamics are at an equilibrium and use these values to to estimate selection on each phenotype. Note that I only assess selection acting on the consumer, since I’m primarily interested in the consequences of G<span class="math inline">\(\times\)</span>E.</p>
 <p>Now I can plot both the G<span class="math inline">\(\times\)</span>E effects of temperature, but also how these G<span class="math inline">\(\times\)</span>E alters natural selection:</p>
 <p><img src="figure/temperature-GxE-consumers.Rmd/plot-phenotype-selection-1.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-plot-phenotype-selection-1">
+Past versions of plot-phenotype-selection-1.png
+</button>
+</p>
+<div id="fig-plot-phenotype-selection-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/mabarbour/foodweb-theory/blob/82fbf9529aca44648119fff963ba04c8ea4acf6c/docs/figure/temperature-GxE-consumers.Rmd/plot-phenotype-selection-1.png" target="_blank">82fbf95</a>
+</td>
+<td>
+mabarbour
+</td>
+<td>
+2020-10-15
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 </div>
 <div id="scaling-gtimese-effects-to-evolutionary-change" class="section level2">
 <h2>Scaling G<span class="math inline">\(\times\)</span>E effects to evolutionary change</h2>
 <p>I’m going to examine how temperature alters the invasion fitness of genotypes A and B. To do this, I need to be able to assess whether Genotype B, e.g., has higher fitness when Genotype A is at equilibrium, and vice versa. But since there phenotypes are different, I need to compare their total phenotype at a particular temperature.</p>
 <p><img src="figure/temperature-GxE-consumers.Rmd/invasion-fitness-1.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-invasion-fitness-1">
+Past versions of invasion-fitness-1.png
+</button>
+</p>
+<div id="fig-invasion-fitness-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/mabarbour/foodweb-theory/blob/82fbf9529aca44648119fff963ba04c8ea4acf6c/docs/figure/temperature-GxE-consumers.Rmd/invasion-fitness-1.png" target="_blank">82fbf95</a>
+</td>
+<td>
+mabarbour
+</td>
+<td>
+2020-10-15
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 </div>
 <div id="scaling-gtimese-effects-to-food-web-stability" class="section level2">
 <h2>Scaling G<span class="math inline">\(\times\)</span>E effects to food-web stability</h2>
 <p>I can also look at how the G<span class="math inline">\(\times\)</span>E effects of temperature alter the stability of the consumer-resource interactions:</p>
+<pre><code>Warning: `guides(&lt;scale&gt; = FALSE)` is deprecated. Please use `guides(&lt;scale&gt; =
+&quot;none&quot;)` instead.</code></pre>
 <p><img src="figure/temperature-GxE-consumers.Rmd/plot-stability-1.png" width="672" style="display: block; margin: auto;" /></p>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-plot-stability-1">
+Past versions of plot-stability-1.png
+</button>
+</p>
+<div id="fig-plot-stability-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/mabarbour/foodweb-theory/blob/82fbf9529aca44648119fff963ba04c8ea4acf6c/docs/figure/temperature-GxE-consumers.Rmd/plot-stability-1.png" target="_blank">82fbf95</a>
+</td>
+<td>
+mabarbour
+</td>
+<td>
+2020-10-15
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 <p>While we still observe a typical stability pattern with temperature <span class="citation">(explained in detail in Gilbert et al. 2014)</span>, we see that G<span class="math inline">\(\times\)</span>E effects can switch which genotypes confer greater stability depending on temperature.</p>
 </div>
 <div id="reproduce-fig.-3-in-manuscript" class="section level2">
@@ -702,15 +908,52 @@ K_seq &lt;- K_scaling(K0 = K0(K_base = 100, E_B = 0.32, E_S = 0.9, T = C_to_K(15
 Reproduce Fig. 3 in manuscript.
 </p>
 </div>
+<p>
+<button type="button" class="btn btn-default btn-xs btn-workflowr btn-workflowr-fig" data-toggle="collapse" data-target="#fig-unnamed-chunk-1-1">
+Past versions of unnamed-chunk-1-1.png
+</button>
+</p>
+<div id="fig-unnamed-chunk-1-1" class="collapse">
+<div class="table-responsive">
+<table class="table table-condensed table-hover">
+<thead>
+<tr>
+<th>
+Version
+</th>
+<th>
+Author
+</th>
+<th>
+Date
+</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>
+<a href="https://github.com/mabarbour/foodweb-theory/blob/82fbf9529aca44648119fff963ba04c8ea4acf6c/docs/figure/temperature-GxE-consumers.Rmd/unnamed-chunk-1-1.png" target="_blank">82fbf95</a>
+</td>
+<td>
+mabarbour
+</td>
+<td>
+2020-10-15
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
 </div>
 <div id="references" class="section level2">
 <h2>References</h2>
-<div id="refs">
-<div id="ref-Gilbert2014">
-<p>Gilbert, Benjamin, Tyler D Tunney, Kevin S McCann, John P DeLong, David A Vasseur, Van Savage, Jonathan B Shurin, et al. 2014. “A Bioenergetic Framework for the Temperature Dependence of Trophic Interactions.” <em>Ecol. Lett.</em> 17 (8): 902–14.</p>
+<div id="refs" class="references csl-bib-body hanging-indent">
+<div id="ref-Gilbert2014" class="csl-entry">
+Gilbert, Benjamin, Tyler D Tunney, Kevin S McCann, John P DeLong, David A Vasseur, Van Savage, Jonathan B Shurin, et al. 2014. <span>“A Bioenergetic Framework for the Temperature Dependence of Trophic Interactions.”</span> <em>Ecol. Lett.</em> 17 (8): 902–14.
 </div>
-<div id="ref-Peters1983">
-<p>Peters, Robert Henry. 1983. <em>The Ecological Implications of Body Size</em>. Cambridge University Press.</p>
+<div id="ref-Peters1983" class="csl-entry">
+Peters, Robert Henry. 1983. <em>The Ecological Implications of Body Size</em>. Cambridge University Press.
 </div>
 </div>
 <br>
@@ -721,7 +964,7 @@ Reproduce Fig. 3 in manuscript.
 </p>
 <div id="workflowr-sessioninfo" class="collapse">
 <pre class="r"><code>sessionInfo()</code></pre>
-<pre><code>R version 3.6.3 (2020-02-29)
+<pre><code>R version 4.1.0 (2021-05-18)
 Platform: x86_64-pc-linux-gnu (64-bit)
 Running under: Ubuntu 16.04.7 LTS
 
@@ -741,27 +984,28 @@ attached base packages:
 [1] stats     graphics  grDevices utils     datasets  methods   base     
 
 other attached packages:
- [1] cowplot_1.0.0   forcats_0.4.0   stringr_1.4.0   dplyr_0.8.3    
- [5] purrr_0.3.3     readr_1.3.1     tidyr_1.0.2     tibble_2.1.3   
- [9] ggplot2_3.2.1   tidyverse_1.3.0 rootSolve_1.7   deSolve_1.24   
+ [1] cowplot_1.1.1     forcats_0.5.1     stringr_1.4.0     dplyr_1.0.7      
+ [5] purrr_0.3.4       readr_1.4.0       tidyr_1.1.3       tibble_3.1.2     
+ [9] ggplot2_3.3.5     tidyverse_1.3.1   rootSolve_1.8.2.2 deSolve_1.28     
+[13] workflowr_1.6.2  
 
 loaded via a namespace (and not attached):
- [1] tidyselect_0.2.5  xfun_0.9          haven_2.2.0       lattice_0.20-38  
- [5] colorspace_1.4-1  vctrs_0.2.2       generics_0.0.2    viridisLite_0.3.0
- [9] htmltools_0.3.6   yaml_2.2.0        rlang_0.4.4       later_1.0.0      
-[13] pillar_1.4.2      withr_2.1.2       glue_1.3.1        DBI_1.0.0        
-[17] dbplyr_1.4.2      modelr_0.1.5      readxl_1.3.1      lifecycle_0.1.0  
-[21] munsell_0.5.0     gtable_0.3.0      workflowr_1.6.0   cellranger_1.1.0 
-[25] rvest_0.3.5       evaluate_0.14     labeling_0.3      knitr_1.26       
-[29] httpuv_1.5.1      highr_0.8         broom_0.5.2       Rcpp_1.0.2       
-[33] promises_1.0.1    backports_1.1.4   scales_1.0.0      jsonlite_1.6     
-[37] fs_1.3.1          hms_0.5.3         digest_0.6.20     stringi_1.4.3    
-[41] grid_3.6.3        rprojroot_1.3-2   cli_1.1.0         tools_3.6.3      
-[45] magrittr_1.5      lazyeval_0.2.2    crayon_1.3.4      whisker_0.3-2    
-[49] pkgconfig_2.0.2   ellipsis_0.3.0    xml2_1.2.2        reprex_0.3.0     
-[53] lubridate_1.7.4   rstudioapi_0.10   assertthat_0.2.1  rmarkdown_2.0    
-[57] httr_1.4.1        R6_2.4.0          nlme_3.1-140      git2r_0.26.1     
-[61] compiler_3.6.3   </code></pre>
+ [1] Rcpp_1.0.6        lubridate_1.7.10  assertthat_0.2.1  rprojroot_2.0.2  
+ [5] digest_0.6.27     utf8_1.2.1        R6_2.5.0          cellranger_1.1.0 
+ [9] backports_1.2.1   reprex_2.0.0      evaluate_0.14     highr_0.9        
+[13] httr_1.4.2        pillar_1.6.1      rlang_0.4.11      readxl_1.3.1     
+[17] rstudioapi_0.13   whisker_0.4       jquerylib_0.1.4   rmarkdown_2.9    
+[21] labeling_0.4.2    munsell_0.5.0     broom_0.7.8       compiler_4.1.0   
+[25] httpuv_1.6.1      modelr_0.1.8      xfun_0.24         pkgconfig_2.0.3  
+[29] htmltools_0.5.1.1 tidyselect_1.1.1  viridisLite_0.4.0 fansi_0.5.0      
+[33] crayon_1.4.1      dbplyr_2.1.1      withr_2.4.2       later_1.2.0      
+[37] grid_4.1.0        jsonlite_1.7.2    gtable_0.3.0      lifecycle_1.0.0  
+[41] DBI_1.1.1         git2r_0.28.0      magrittr_2.0.1    scales_1.1.1     
+[45] cli_3.0.0         stringi_1.6.2     farver_2.1.0      fs_1.5.0         
+[49] promises_1.2.0.1  xml2_1.3.2        bslib_0.2.5.1     ellipsis_0.3.2   
+[53] generics_0.1.0    vctrs_0.3.8       tools_4.1.0       glue_1.4.2       
+[57] hms_1.1.0         yaml_2.2.1        colorspace_2.0-2  rvest_1.0.0      
+[61] knitr_1.33        haven_2.4.1       sass_0.4.0       </code></pre>
 </div>
 </div>
 
@@ -779,6 +1023,8 @@ footer is added to webpages before the MathJax javascript. -->
 </script>
 
 
+
+
 </div>
 </div>
 
@@ -788,7 +1034,7 @@ footer is added to webpages before the MathJax javascript. -->
 
 // add bootstrap table styles to pandoc tables
 function bootstrapStylePandocTables() {
-  $('tr.header').parent('thead').parent('table').addClass('table table-condensed');
+  $('tr.odd').parent('tbody').parent('table').addClass('table table-condensed');
 }
 $(document).ready(function () {
   bootstrapStylePandocTables();
@@ -806,7 +1052,7 @@ $(document).ready(function () {
 
 $(document).ready(function () {
   $('.tabset-dropdown > .nav-tabs > li').click(function () {
-    $(this).parent().toggleClass('nav-tabs-open')
+    $(this).parent().toggleClass('nav-tabs-open');
   });
 });
 </script>
@@ -815,6 +1061,9 @@ $(document).ready(function () {
 
 <script>
 $(document).ready(function ()  {
+
+    // temporarily add toc-ignore selector to headers for the consistency with Pandoc
+    $('.unlisted.unnumbered').addClass('toc-ignore')
 
     // move toc-ignore selectors from section div to header
     $('div.section.toc-ignore')
@@ -827,7 +1076,7 @@ $(document).ready(function ()  {
       theme: "bootstrap3",
       context: '.toc-content',
       hashGenerator: function (text) {
-        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_').toLowerCase();
+        return text.replace(/[.\\/?&!#<>]/g, '').replace(/\s/g, '_');
       },
       ignoreSelector: ".toc-ignore",
       scrollTo: 0
