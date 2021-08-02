@@ -1,0 +1,264 @@
+---
+title: "Five types of figures that are commonly encountered in consumer-resource theory papers"
+subtitle: "An example with the Rosenzweig-MacArthur model"
+author: "Matthew A. Barbour"
+date: "2021-08-02"
+output: workflowr::wflow_html
+editor_options:
+  chunk_output_type: console
+---
+
+The code below reproduces Fig. 2B--G in the manuscript "An empricist's guide to ecological theory".
+
+## Setup
+
+```{r setup, message=F}
+# load required libraries 
+library(deSolve)
+library(seqinr)
+library(tidyverse)
+library(cowplot)
+library(patchwork)
+
+# set plot theme
+theme_set(theme_cowplot())
+
+# colors for plotting
+color_palette <- c("#ffe900","#658c61") 
+color_states <- c("#436340","#658c61","#86c97f")
+
+# source in Rosenzweig-MacArthur model
+source('code/Models.R') # source in R-M C-R model
+```
+
+## Model parameters
+
+```{r parameters}
+# state variable values (initial values at beginning of "experiments")
+R <- 0.6
+C <- 0.1
+i.state <- c(R=0.6,C=0.1) 
+
+# parameter values
+r <- 1.0 # per capita rate of increase in resource
+K <- 3.5 # prey carrying capacity
+# e.exp1 <- 0.45
+e.exp2 <- 0.65
+e.exp3 <- 0.75
+h <- 0.8 # handling time
+m <- 0.5 # mortality rate of predator
+a <- 1.3 # attack rate
+
+# set simulation duration
+Time <- 150 
+
+## create resource isocline, which is always the same
+Rx <- seq(0.1,K,0.1) # manipulating different Resource densities to solve R isocline.
+Riso <- expression(r/a * (1 + a*h*Rx) * (1 - Rx/K)) # set R = 0 and solved algebraically
+RisoStable <- eval(Riso)
+```
+
+## Time series plot and phase plane diagram when **e = `r e.exp2`** (Fig. 2B,D)
+
+```{r warning=FALSE}
+##  adjust parameters
+p.rm2 <- c(r = r, e = e.exp2, a = a, K = K, h = h)
+rm2 <- ode(i.state,1:Time, rmcr_v2, p.rm2)
+
+# adjust resource and consumer isoclines
+Ciso2 <- expression(m / (a * (e.exp2 - m*h))) #expression(m * Ro / (e.exp2 * a - m)) # adjusted attack rate
+CisoStable2 <- eval(Ciso2)
+
+## plot dynamics around consumer and resource isoclines.
+
+# make arrow data
+plot_arrows <- as.data.frame(cbind(rm2[-Time, ], rm2[-1, ]))
+colnames(plot_arrows)[4:6] <- c("time.n1","R.n1","C.n1")
+
+## time series
+plot_exp2_temporal_dynamics <- ggplot(as.data.frame(rm2), aes(x = time)) +
+  geom_line(aes(y = R, color = "Resource")) + 
+  geom_line(aes(y = C, color = "Consumer")) +
+  ylab("Abundance") +
+  xlab("Time") +
+  scale_color_manual(values = color_palette, name = "")
+  #scale_color_viridis_d(name = "")
+plot_exp2_temporal_dynamics
+
+# phase plane
+plot_exp2_isocline_dynamics <- data.frame(Rx = Rx, RisoStable = RisoStable) %>%
+  ggplot(., aes(x = Rx, y = RisoStable)) +
+  geom_line(aes(color = "R isocline")) + 
+  geom_vline(aes(xintercept = CisoStable2, color = "C isocline")) +
+  scale_color_manual(values = color_palette, name = "") +
+  #scale_color_viridis_d(name = "") +
+  geom_segment(data = plot_arrows, aes(x = R, xend = R.n1, y = C, yend = C.n1), arrow = arrow(length = unit(0.1,"cm"))) +
+  geom_point(aes(x = i.state[1], y = i.state[2]), shape = 21, fill = "white") +
+  xlab("Resource") +
+  ylab("Consumer")
+plot_exp2_isocline_dynamics
+```
+
+## Time series plot and phase plane diagram when **e = `r e.exp3`** (Fig. 2C,E)
+
+```{r warning=FALSE}
+## adjust parameter values
+p.rm3 <- c(r = r, e = e.exp3, a = a, K = K, h = h)
+rm3 <- ode(i.state,1:Time, rmcr_v2, p.rm3)
+
+## adjust consumer isocline
+Ciso3 <- expression(m / (a * (e.exp3 - m*h))) #expression(m * Ro / (e.exp3 * a - m)) 
+CisoStable3 <- eval(Ciso3)
+
+## plot dynamics around consumer and resource isoclines.
+
+# make arrow data
+plot_arrows <- as.data.frame(cbind(rm3[-Time, ], rm3[-1, ]))
+colnames(plot_arrows)[4:6] <- c("time.n1","R.n1","C.n1")
+
+## time series
+plot_exp3_temporal_dynamics <- ggplot(as.data.frame(rm3), aes(x = time)) +
+  geom_line(aes(y = R, color = "Resource")) + 
+  geom_line(aes(y = C, color = "Consumer")) +
+  ylab("Abundance") +
+  xlab("Time") +
+  scale_color_manual(values = color_palette, name = "")
+  #scale_color_viridis_d(name = "")
+plot_exp3_temporal_dynamics
+
+# phase plane
+plot_exp3_iscoline_dynamics <- data.frame(Rx = Rx, RisoStable = RisoStable) %>%
+  ggplot(., aes(x = Rx, y = RisoStable)) +
+  geom_line(aes(color = "R isocline")) + 
+  geom_vline(aes(xintercept = CisoStable3, color = "C isocline")) +
+  scale_color_manual(values = color_palette, name = "") +
+  #scale_color_viridis_d(name = "") +
+  geom_segment(data = plot_arrows, aes(x = R, xend = R.n1, y = C, yend = C.n1), arrow = arrow(length = unit(0.1,"cm"))) +
+  geom_point(aes(x = i.state[1], y = i.state[2]), shape = 21, fill = "white") +
+  xlab("Resource") +
+  ylab("Consumer")
+plot_exp3_iscoline_dynamics
+```
+
+## Bifurcation plot (Fig. 2F)
+
+Shows how consumer-resource dynamics change along a continuous gradient of conversion efficiency.
+
+```{r warning=FALSE}
+# much of this code was derived from: http://www.r-bloggers.com/r-tools-for-dynamical-systems-bifurcation-plot-in-r%C2%A0for%C2%A0system%C2%A0of%C2%A0odes/)
+
+Time <- 300 # need bigger time range to make sure I get the dynamics
+
+param.name <- "e" # choose parameter to perturb
+e.init <- 0.5
+param.seq <- seq(e.init, 1,length=50) # choose range of parameters
+p.rm4 <- c(r = r, e = e.init, a = a, K = K, h = h, m=m) # set starting parameters.
+param.index <- which(param.name == names(p.rm4)) # tells the loop which parameter in "p.rm4" to grab for manipulation.
+
+out <- list()
+for (i in 1:length(param.seq))
+  out[[i]] <- matrix(0, Time, length(i.state))
+
+for (i in 1:length(param.seq)) {
+  # set params
+  p.rm4.loop <- p.rm4
+  p.rm4.loop[param.index] <- param.seq[i] # changes the parameter value for manipulation in the "init" function below.
+  # converge
+  init <- ode(i.state, 1:Time, rmcr_v2, p.rm4.loop)
+  # get converged points
+  out[[i]] <- ode(init[Time,-1], 1:Time, rmcr_v2, p.rm4.loop)[,-1]
+}
+
+range.lim <- lapply(out, function(x) apply(x, 2, range)) # get abundance ranges for each set of parameters
+range.lim <- apply(do.call("rbind", range.lim), 2, range) # get abundance ranges across parameters 
+
+##  consumer bifurcation plot
+plot.variable <- "C" # choose which variable to show
+
+# get max and min for consumer and resource abundances once transient dynamics have settled down
+sim.list <- list()
+for (i in 1:length(param.seq)) {
+  sim.list[[i]] <- data.frame(rep = i,
+                              R_max = max(out[[i]][200:300,"R"]),
+                              R_min = min(out[[i]][200:300,"R"]),
+                              C_max = max(out[[i]][200:300,"C"]),
+                              C_min = min(out[[i]][200:300,"C"]))
+}
+
+# gather into a data frame
+sim.df <- plyr::ldply(sim.list) %>%
+  mutate(e = param.seq) %>% 
+  gather(state, value, -rep, -e) %>%
+  separate(state, into = c("species","max_min"))
+
+# Consumer bifurcation plot
+bifur_C_plot <- sim.df %>%
+  filter(species == "C") %>%
+  ggplot(., aes(x = e, y = value, group=max_min)) +
+  geom_line(color = color_palette[1]) +
+  ylab("Consumer (max and min)") +
+  xlab("Conversion efficiency (e)") +
+  # plot points directly from sim
+  geom_point(aes(x=e.exp2, y=max(rm2[100:150,"C"])), size = 2) + 
+  geom_point(aes(x=e.exp3, y=max(rm3[100:150,"C"])), size = 2) + 
+  geom_point(aes(x=e.exp3, y=min(rm3[100:150,"C"])), size = 2) + 
+  theme_cowplot(font_size = 12)
+bifur_C_plot
+```
+
+## Summary plot (Fig. 2G)
+
+Shows how changing consumer conversion efficiency (*e*) and the resource's carrying capacity (*K*) qualitatively alters the dynamics of the system.
+
+```{r}
+param.name.1 <- "e" # choose parameter to perturb
+param.name.2 <- "K"
+grain <- 300
+e.init <- 0.45
+K.init <- 0.1
+param.seq.1 <- seq(e.init, 1, length = grain) # choose range of parameters
+param.seq.2 <- seq(K.init, 4, length = grain) # choose second range of parameters
+param.seq <- expand.grid(e = param.seq.1, K = param.seq.2) %>%
+  mutate(r = r, a = a, h = h) %>%
+  mutate(R.eq = m/(a*(e-m*h))) %>%
+  mutate(C.eq = (r/a)*(1-R.eq/K)*(1+a*h*R.eq),
+         Stability = K - (e + h*m)/(a*h*(e-h*m))) %>%
+  mutate(State = ifelse(C.eq < 0, "R only",
+                        ifelse(Stability < 0, "C-R Stable Coexistence", "C-R Limit Cycle")))
+
+df_geom_text <- param.seq %>%
+  group_by(State) %>%
+  summarise_at(vars(e, K), list(mean))
+
+plot_e_r_manip <- param.seq %>%
+  ggplot(., aes(x = e, y = K)) +
+  geom_tile(aes(fill = State)) +
+  scale_fill_manual(values = color_states, name = "") +
+  geom_point(aes(x = e.exp2, y = 3.5)) + # new K
+  geom_point(aes(x = e.exp3, y = 3.5)) + # new K
+  xlab("Conversion efficiency (e)") +
+  ylab("Carrying capacity (K)") +
+  geom_text(data = df_geom_text, aes(x = e, y = K, label = State), size = 3) +
+  theme_cowplot(font_size = 12) +
+  theme(legend.position = "none")
+plot_e_r_manip
+```
+
+
+## Patch plots together to reproduce Fig. 2 in Box 3
+
+```{r}
+# use patchwork for multi-panel plot
+plot_temporal <- plot_exp2_temporal_dynamics + ggtitle("e = 0.65") + theme_cowplot(font_size = 12) + theme(legend.position = "none", plot.title = element_text(hjust = 0.5)) +
+  plot_exp3_temporal_dynamics + ylab("") + ggtitle("e = 0.75") + theme_cowplot(font_size = 12) + 
+  theme(plot.title = element_text(hjust = 0.5))
+
+plot_isocline <- plot_exp2_isocline_dynamics + theme_cowplot(font_size = 12) + theme(legend.position = "none") +
+  plot_exp3_iscoline_dynamics + ylab("") + theme_cowplot(font_size = 12)
+
+# final plot
+plot_temporal / plot_isocline / bifur_C_plot / plot_e_r_manip
+ggsave(filename = "figures/rosenzweig-macarthur.png", width = 6, height = 8)
+```
+
+
